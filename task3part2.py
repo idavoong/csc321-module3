@@ -1,22 +1,28 @@
 from Crypto.Util.number import getPrime
+from hashlib import sha256
+
 
 def generate_prime(bits):
     return getPrime(bits)
 
+
 def mod_inverse(a, m):
     """Compute the modular multiplicative inverse of a modulo m."""
+
     def egcd(a, b):
         if a == 0:
             return b, 0, 1
         else:
             g, y, x = egcd(b % a, a)
             return g, x - (b // a) * y, y
+
     g, x, _ = egcd(a, m)
     if g != 1:
-        raise Exception('Modular inverse does not exist')
+        raise Exception("Modular inverse does not exist")
     else:
         return x % m
-    
+
+
 # Requirement: Implement key generation
 def generate_keypair(bits):
     """Generate RSA public and private keys."""
@@ -27,43 +33,72 @@ def generate_keypair(bits):
     e = 65537  # Requirement: Use the value e=65537
     d = mod_inverse(e, phi)
     d_check = pow(e, -1, phi)
-    #print(f"\nmod_inverse_check (d): {d}")
-    #print(f"pow (d_check): {d_check}\n")
+    # print(f"\nmod_inverse_check (d): {d}")
+    # print(f"pow (d_check): {d_check}\n")
     return ((n, e), (n, d))
+
 
 # encrypt using public key
 def encrypt(msg, public_key):
     # RSA encryption: c = m^e mod n
     n, e = public_key
-    m = string_to_int(msg)
-    c = pow(m, e, n)
+    # m = string_to_int(msg)
+    c = pow(msg, e, n)
     return c
+
 
 # decrypt using private key
 def decrypt(ciphertext, private_key):
     # RSA decryption: m^d mod n
     n, d = private_key
     m = pow(ciphertext, d, n)
-    return int_to_string(m)
+    # return int_to_string(m)
+    return m
+
+# k = sha256(encrypt)
+
 
 # convert a str into an int
 def string_to_int(msg):
-    return int.from_bytes(msg.encode(), byteorder='big')
+    return int.from_bytes(msg.encode(), byteorder="big")
+
 
 # convert an int back to str
 def int_to_string(m):
-    return m.to_bytes((m.bit_length() + 7) // 8, byteorder='big').decode()
+    return m.to_bytes((m.bit_length() + 7) // 8, byteorder="big").decode()
+
+def mal_attack(public_key, c, r):
+    n, e = public_key
+    r_e = pow(r, e, n)
+    c_prime = (c * r_e) % n
+    return c_prime
+
 
 def test_rsa():
     public_key, private_key = generate_keypair(2048)
-    msg = "Hello, RSA!"
+
+    msg = string_to_int("Hello, RSA!")
 
     ciphertext = encrypt(msg, public_key)
-    print(ciphertext)
+    print("encrypted msg:", ciphertext)
 
     decrypt_msg = decrypt(ciphertext, private_key)
-    print(decrypt_msg)
+    print("decrypted msg:", decrypt_msg)
+
+    r = 5
+    c_prime = mal_attack(public_key, ciphertext, r)
+    s_prime = decrypt(c_prime, private_key)
+
+
+    print("c_prime:", c_prime)
+    print("s_prime:", s_prime)
+
+    # recovery
+    original_msg = s_prime // r
+    recover_msg = int_to_string(original_msg)
+    print("Mal recovered the msg: ", recover_msg)
 
 
 if __name__ == "__main__":
     test_rsa()
+    
