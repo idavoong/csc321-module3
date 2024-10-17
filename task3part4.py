@@ -17,9 +17,9 @@ def sign(m, private_key):
     return pow(m, d, n)
 
 # RSA verification: Verify the signature with the public key
-def verify(signature, public_key):
+def verify(signature, message, public_key):
     n, e = public_key
-    return pow(signature, e, n)
+    return pow(signature, e, n) == message
 
 # Convert string to int
 def string_to_int(msg):
@@ -40,31 +40,21 @@ def main():
     # Key generation for Alice
     public_key, private_key = generate_keypair(2048)
 
-    # Original message from Alice
-    msg = "Pay 100 dollars"
-    m = string_to_int(msg)
+    # Message 1 from Alice
+    msg1 = "Pay 100 dollars"
+    m1 = string_to_int(msg1)
+    signature1 = sign(m1, private_key)
 
-    # Alice signs the message
-    signature = sign(m, private_key)
-    print(f"Original signature: {signature}")
+    # Message 2 from Alice
+    msg2 = "Pay 500 dollars"
+    m2 = string_to_int(msg2)
+    signature2 = sign(m2, private_key)
 
-    # Mallory chooses an arbitrary r
-    r = 3  # Can be any random value chosen by Mallory
-
-    # Mallory forges a new signature for a different message
-    forged_signature = signature_forgery(public_key, signature, r, private_key)
-
-    # The new message corresponding to the forged signature
-    new_message_int = (m * r) % public_key[0]  # m' = m * r mod n
-    new_message = int_to_string(new_message_int)
-    print(f"Mallory's new message: {new_message}")
-    print(f"Forged signature: {forged_signature}")
-
-    # Verify that the forged signature is valid for the new message
-    verified_message_int = verify(forged_signature, public_key)
-    verified_message = int_to_string(verified_message_int)
-
-    print(f"Verified message from forged signature: {verified_message}")
+    # Mallory forges a new signature
+    m3 = m1 * m2
+    signature3 = signature1 * signature2
+    test = verify(signature3, m3, public_key)
+    print(f"Verify signature: {test}")
 
 if __name__ == "__main__":
     main()
